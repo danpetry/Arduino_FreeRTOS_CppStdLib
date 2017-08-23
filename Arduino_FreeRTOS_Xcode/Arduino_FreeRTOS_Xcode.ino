@@ -52,11 +52,11 @@ QueueHandle_t xQueue1;
 
 // Prototypes
 // define two tasks for Blink & AnalogRead
-//void TaskBlink( void *pvParameters );
-//void TaskAnalogRead( void *pvParameters );
+void TaskBlink( void *pvParameters );
+void TaskAnalogRead( void *pvParameters );
 void TaskProducer( void *pvParameters );
 void TaskConsumer( void *pvParameters );
-void print_log_event(void);
+//void print_log_event(void);
 
 
 // Utilities
@@ -79,163 +79,113 @@ vector<string> strings;
 void setup() {
     
     Serial.begin(9600);
-    
-    strings.push_back("Hello,");
-    strings.push_back("world!");
+    while (!Serial) {
+        ;
+    }
+
+    //Hello world using string vector
+    strings.push_back("Hello world");
     copy(strings.begin(),strings.end(),ostream_iterator<string>(cout," "));
     cout << endl;
     
-    cout << "Hello, world." << endl;
     
-    cout << F("I use up absolutely no RAM space whatsoever") << endl;
-    cout << F("so you can use as many F() strings as you want!") << endl;
-    
-    float fmax = __FLT_MAX__, fmin = __FLT_MIN__;
-    cout.precision(7);
-    cout << "Float " << scientific << fmax << endl;
-    cout << "Float " << scientific << fmin << endl;
-    
-    cout << "+OK" << endl;
-    
-    int n = 3;
-    int (*button)[3] = new int[n][3];
-    
-    // initialize serial communication at 9600 bits per second:
-    
-    while (!Serial) {
-        ; // wait for serial port to connect. Needed for native USB, on LEONARDO, MICRO, YUN, and other 32u4 based boards.
-    }
-    
-    // Now set up two tasks to run independently.
+//    // Set up tasks
 //    xTaskCreate(
-//                TaskBlink
-//                ,  (const portCHAR *)"Blink"   // A name just for humans
-//                ,  128  // This stack size can be checked & adjusted by reading the Stack Highwater
-//                ,  NULL
+//                TaskBlink  //Task code, of type TaskFunction_t
+//                ,  (const portCHAR *)"Blink"   // Task name
+//                ,  128  // Stack size - check and adjust by reading the Stack Highwater
+//                ,  NULL //Parameters
 //                ,  2  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
-//                ,  NULL );
+//                ,  NULL ); //Task handle of type TaskHandle_t*
 //    
 //    xTaskCreate(
 //                TaskAnalogRead
 //                ,  (const portCHAR *) "AnalogRead"
-//                ,  128  // Stack size
+//                ,  128
 //                ,  NULL
-//                ,  1  // Priority
+//                ,  1
 //                ,  NULL );
     
     xTaskCreate(
                 TaskProducer
                 ,  (const portCHAR *) "Producer"
-                ,  128  // Stack size
+                ,  128
                 ,  NULL
-                ,  2  // Priority
+                ,  1
                 ,  NULL );
     xTaskCreate(
                 TaskConsumer
                 ,  (const portCHAR *) "Consumer"
-                ,  128  // Stack size
+                ,  128
                 ,  NULL
-                ,  1  // Priority
+                ,  2
                 ,  NULL );
     
     xQueue1 = xQueueCreate(
                 10
                  ,  sizeof(int));
     
-    // Now the task scheduler, which takes over control of scheduling individual tasks, is automatically started.
 }
 
 void loop()
 {
-    // Empty. Things are done in Tasks.
+    // Needed in Arduino
 }
 
 
-/*--------------------------------------------------*/
-/*---------------------- Tasks ---------------------*/
-/*--------------------------------------------------*/
-void TaskProducer(void *pvParameters)  // This is a task.
+/******************  TASKS  ********************/
+
+void TaskProducer(void *pvParameters)
 {
     (void) pvParameters;
     
-    for (;;)
+    while(1)
     {
         counter++;
         cout << "Producer: ";
         cout << counter << endl;
-        xQueueSend( xQueue1, (void *)&counter, (TickType_t)10 );
-        delay(10);
-        //vTaskDelay(10);  // 1.5s
+        xQueueSend( xQueue1, (void *)&counter, (TickType_t)1000 / portTICK_PERIOD_MS );
+        vTaskDelay(1500 / portTICK_PERIOD_MS);
+        //delay(1000);
     }
 }
 
-void TaskConsumer(void *pvParameters)  // This is a task.
+void TaskConsumer(void *pvParameters)
 {
     (void) pvParameters;
     
-    for (;;)
+    while(1)
     {
         int message;
-        xQueueReceive( xQueue1, (void *)&message, (TickType_t)10 );
+        xQueueReceive( xQueue1, (void *)&message, (TickType_t)1000 / portTICK_PERIOD_MS );
         cout << "Consumer: ";
         cout << message << endl;
-        vTaskDelay(10);  // 1.5s
-    }
-}
-void TaskBlink(void *pvParameters)  // This is a task.
-{
-    (void) pvParameters;
-    
-    /*
-     Blink
-     Turns on an LED on for one second, then off for one second, repeatedly.
-     
-     Most Arduinos have an on-board LED you can control. On the UNO, LEONARDO, MEGA, and ZERO
-     it is attached to digital pin 13, on MKR1000 on pin 6. LED_BUILTIN takes care
-     of use the correct LED pin whatever is the board used.
-     
-     The MICRO does not have a LED_BUILTIN available. For the MICRO board please substitute
-     the LED_BUILTIN definition with either LED_BUILTIN_RX or LED_BUILTIN_TX.
-     e.g. pinMode(LED_BUILTIN_RX, OUTPUT); etc.
-     
-     If you want to know what pin the on-board LED is connected to on your Arduino model, check
-     the Technical Specs of your board  at https://www.arduino.cc/en/Main/Products
-     
-     This example code is in the public domain.
-     
-     modified 8 May 2014
-     by Scott Fitzgerald
-     
-     modified 2 Sep 2016
-     by Arturo Guadalupi
-     */
-    
-    // initialize digital LED_BUILTIN on pin 13 as an output.
-    pinMode(LED_BUILTIN, OUTPUT);
-    
-    for (;;) // A Task shall never return or exit.
-    {
-        digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-        vTaskDelay( 1000 / portTICK_PERIOD_MS ); // wait for one second
-        digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
-        vTaskDelay( 1000 / portTICK_PERIOD_MS ); // wait for one second
+        vTaskDelay(1500 / portTICK_PERIOD_MS);  // 1.5s
     }
 }
 
-void TaskAnalogRead(void *pvParameters)  // This is a task.
+/* Blink - Turns on an LED on for one second, then off for one second, repeatedly. */
+void TaskBlink(void *pvParameters)
 {
     (void) pvParameters;
     
-    /*
-     AnalogReadSerial
-     Reads an analog input on pin 0, prints the result to the serial monitor.
-     Graphical representation is available using serial plotter (Tools > Serial Plotter menu)
-     Attach the center pin of a potentiometer to pin A0, and the outside pins to +5V and ground.
-     
-     This example code is in the public domain.
-     */
+    pinMode(LED_BUILTIN, OUTPUT);
     
-    for (;;)
+    while(1)
+    {
+        digitalWrite(LED_BUILTIN, HIGH);
+        vTaskDelay( 1000 / portTICK_PERIOD_MS ); //1000 ms
+        digitalWrite(LED_BUILTIN, LOW);
+        vTaskDelay( 1000 / portTICK_PERIOD_MS );
+    }
+}
+
+/* AnalogReadSerial - Reads an analog input on pin 0, prints the result to the serial monitor.*/
+void TaskAnalogRead(void *pvParameters)
+{
+    (void) pvParameters;
+    
+    while(1)
     {
         // read the input on analog pin 0:
         int sensorValue = analogRead(A0);
@@ -245,6 +195,6 @@ void TaskAnalogRead(void *pvParameters)  // This is a task.
     }
 }
 
-void print_log_event(void){
-    Serial.println("xQueue1 queue send failed");
-}
+//void print_log_event(void){
+//    Serial.println("xQueue1 queue send failed");
+//}
