@@ -111,14 +111,14 @@ void setup() {
                 ,  (const portCHAR *) "Producer"
                 ,  128
                 ,  NULL
-                ,  1
+                ,  2
                 ,  NULL );
     xTaskCreate(
                 TaskConsumer
                 ,  (const portCHAR *) "Consumer"
                 ,  128
                 ,  NULL
-                ,  2
+                ,  1
                 ,  NULL );
     
     xQueue1 = xQueueCreate(
@@ -142,11 +142,11 @@ void TaskProducer(void *pvParameters)
     while(1)
     {
         counter++;
-        cout << "Producer: ";
-        cout << counter << endl;
-        xQueueSend( xQueue1, (void *)&counter, (TickType_t)1000 / portTICK_PERIOD_MS );
-        vTaskDelay(1500 / portTICK_PERIOD_MS);
-        //delay(1000);
+        //This queue/message pair is not atomic and doesn't represent what's going on. How to correct this?
+        xQueueSend( xQueue1, (void *)&counter, (TickType_t)3000 / portTICK_PERIOD_MS );
+        cout << "Producer put in queue:" << counter << endl;
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+        //delay(500);
     }
 }
 
@@ -158,8 +158,7 @@ void TaskConsumer(void *pvParameters)
     {
         int message;
         xQueueReceive( xQueue1, (void *)&message, (TickType_t)1000 / portTICK_PERIOD_MS );
-        cout << "Consumer: ";
-        cout << message << endl;
+        cout << "Consumed: " << message << endl;
         vTaskDelay(1500 / portTICK_PERIOD_MS);  // 1.5s
     }
 }
